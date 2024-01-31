@@ -44,8 +44,8 @@ func main() {
 	r.HandleFunc("/api/go/users", getUsers(db)).Methods("GET")
 	r.HandleFunc("/api/go/users", createUser(db)).Methods("POST")
 	r.HandleFunc("/api/go/users/{id}", getUser(db)).Methods("GET")
-	// r.HandleFunc("/api/go/users/{id}", updateUser(db)).Methods("PUT")
-	// r.HandleFunc("/api/go/users/{id}", deleteUser(db)).Methods("DELETE")
+	r.HandleFunc("/api/go/users/{id}", updateUser(db)).Methods("PUT")
+	r.HandleFunc("/api/go/users/{id}", deleteUser(db)).Methods("DELETE")
 
 	// wrap with cors and json middleware
 	router := middleware.EnableCORS(middleware.JsonContentTypeMiddleware(r))
@@ -138,4 +138,54 @@ func createUser(db *sql.DB) http.HandlerFunc {
 	}
 }
 
-// update user https://youtu.be/429-r55KFmM?t=893
+func deleteUser(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		params := mux.Vars(r)
+		id := params["id"]
+
+		var u User
+
+		err := db.QueryRow("SELECT * FROM users WHERE id = $1", id).Scan(&u.Id, &u.Name, &u.Email)
+
+		if err != nil {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		} else {
+			_, err := db.Exec("DELETE FROM users WHERE id = $1", id)
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			json.NewEncoder(w).Encode("User Deleted.")
+
+		}
+
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+func updateUser(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var u User
+		json.NewDecoder(r.Body).Decode(&u)
+
+		vars := mux.Vars(r)
+		id := vars["id"]
+
+		// Execute the update query
+		_, err := db.Exec("UPDATE users SET name = $1, email = $2 WHERE id = $3", u.Name, u.Email, id)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		// Retrieve the updated user data from the database
+		var updatedUser User
+		err = db.QueryRow("SELECT id, name, email FROM users WHERE id = $1", id).Scan(&updatedUser.Id, &updatedUser.Name, &updatedUser.Email)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		// Send the updated user data in the response
+		json.NewEncoder(w).Encode(updatedUser)
+	}
+}
