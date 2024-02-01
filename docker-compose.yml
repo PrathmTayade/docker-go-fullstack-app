@@ -19,6 +19,19 @@ services:
       PGADMIN_DEFAULT_EMAIL: admin@admin.com
       PGADMIN_DEFAULT_PASSWORD: admin
 
+  nextapp:
+    container_name: nextapp
+    image: nextapp:1.0.0
+    build:
+      context: ./frontend
+      dockerfile: next.Dockerfile
+    environment:
+      - NEXT_PUBLIC_API_URL=http://127.0.0.1:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - goapp
+
   goapp:
     container_name: goapp
     image: goapp:1.0.0
@@ -31,7 +44,6 @@ services:
       - "8000:8000"
     depends_on:
       - db
-
 volumes:
   pgdata: {}
   pgadmin-data: {}

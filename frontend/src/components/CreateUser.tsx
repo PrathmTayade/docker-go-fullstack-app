@@ -28,7 +28,7 @@ const schema = z.object({
       invalid_type_error: "email must be a string",
     })
     .email("Invalid email address"),
-});
+})
 
 const CreateUser: React.FC = () => {
   const {
